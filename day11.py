@@ -65,27 +65,29 @@ def move(eq, d):
 def generators(floor):
     return [g for g in floors[floor - 1] if g.endswith('G')]
 
+def equipmentAbove(f):
+    return [m for (m, floor) in pos.items() if floor > f]
+
 def microchips(floor):
     return [m for m in floors[floor - 1] if m.endswith('M')]
 
 def microchipsBelow(f):
-    return [m for (m, floor) in pos.items() if m.endswith('M') and floor < floor]
-
+    return [m for (m, floor) in pos.items() if m.endswith('M') and floor < f]
 
 def assertValid():
     for i in range(1, 5):
-        gens = [g for g in generators(i) if pos[g[0:2] + 'M'] != i]
+        gens = generators(i)
         if len(gens):
             for c in microchips(i):
                 if pos[c[0:2] + 'G'] != i:
-                    raise Exception('%s on floor %d: %s' % (c, i, ', '.join(floors[i])))
+                    raise Exception('%s on floor %d: %s' % (c, i - 1, ', '.join(floors[i - 1])))
 
 print chr(0x9b)+chr(27)+'[2J'
 print moves
 printFloors()
 
 #time.sleep(1)
-while len(floors[3]) < equipmentCount:
+while len(floors[3]) < equipmentCount and moves < 12:
 #    print chr(0x9b)+chr(27)+'[2J'
     print moves
 
@@ -96,14 +98,16 @@ while len(floors[3]) < equipmentCount:
     floor = floors[elevatorFloor - 1]
     pair = findPair(floor)
 
-    if pair and elevatorFloor < 4:
+    if pair and elevatorFloor < 4 and len(equipmentAbove(elevatorFloor)):
         floorGens = generators(elevatorFloor)
         chipsAtOrBelow = microchipsBelow(elevatorFloor)
         # If the pair is the only items on this floor, or there
         # are no microchips below this floor, move them up
         if len(floorGens) == 1 or len(chipsAtOrBelow) == 0:
+            print "Rule 1"
             move(pair, 1)
         else:
+            print "Rule 2"
             # There is at least one microchip on a lower floor,
             # use the microchip from the pair to go down to fetch it
             move([pair[1]], -1)
@@ -114,14 +118,18 @@ while len(floors[3]) < equipmentCount:
         # If one of the microchips on this floor has a generator on a lower floor,
         # take the chip to go down and bring the generator
         if len(chipsWithLowerGen):
-            move(chipsWithLowerGen[0:2], -1)
+            print "Rule 3"
+            move(chipsWithLowerGen[0:1], -1)
         # Otherwise, if there are microchips on this floor, move as many of them as
         # possible up.
         elif len(chips) > 1 and elevatorFloor < 4:
-            move(chips[0:2], 1)
+            print "Rule 4"
+            nextGens = generators(elevatorFloor + 1)
+            move([c for c in chips[0:2] if len(nextGens) == 0 or pos[c[0:2] + 'G'] == elevatorFloor + 1], 1)
         # Otherwise, there's a microchip somewhere below, use one of the chips to
         # go bring it up
         else:
+            print "Rule 5"
             move(chips[0:1], -1)
 
     printFloors()
