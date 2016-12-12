@@ -64,19 +64,15 @@ def possibleMoves(floor):
 def moveId(move, f, t):
     return ''.join(move) + ';' + str(f) + ';' + str(t)
 
-examinedMoves = 0
 def play(elevatorFloor, floors):
-    global examinedMoves
+    examinedMoves = 0
 
-
-    floorI = elevatorFloor - 1
     queue = deque()
-
     queue.append((elevatorFloor, floors, []))
-    best = None
 
     while len(queue):
         (elevatorFloor, floors, moves) = queue.popleft()
+        floorI = elevatorFloor - 1
 
         examinedMoves += 1
         if (examinedMoves % 10000 == 0):
@@ -86,21 +82,20 @@ def play(elevatorFloor, floors):
         for nextFloor in candFloors:
             possible = possibleMoves(floors[floorI])
             filteredPossible = [m for m in possible if not moveId(m, elevatorFloor, nextFloor) in moves]
-            if len(filteredPossible) == 0:
-                print 'No possible moves at ', len(moves)
+#            if len(filteredPossible) == 0:
+#                print 'No possible moves at ', len(moves)
     #        if len(possible) != len(filteredPossible):
     #            print 'Removed ', len(possible) - len(filteredPossible)
             for move in filteredPossible:
                 newFloors = createFloors(floors, move, elevatorFloor, nextFloor)
                 if len(newFloors[3]) == equipmentCount:
-                    return moves
+                    return moves + [move]
                 elif isValid(floors, elevatorFloor, nextFloor):
-                    if not best or len(moves) < best - 2:
-                        queue.append((newFloors, nextFloor, moves + [moveId(move, elevatorFloor, nextFloor)]))
-    #                else:
-    #                    print 'Pruned at ', len(moves)
+                    queue.append((nextFloor, newFloors, moves + [moveId(move, elevatorFloor, nextFloor)]))
+    
+    return None
 
-best = play(1, initial_floors, [], int(sys.argv[2]))
+best = play(1, initial_floors)
 print best
 print len(best)
 
