@@ -4,6 +4,7 @@ import sys
 import re
 import time
 import itertools
+from collections import deque
 
 f = open(sys.argv[1], 'r')
 
@@ -64,61 +65,40 @@ def moveId(move, f, t):
     return ''.join(move) + ';' + str(f) + ';' + str(t)
 
 examinedMoves = 0
-def play(elevatorFloor, floors, moves, best):
+def play(elevatorFloor, floors):
     global examinedMoves
 
-    examinedMoves += 1
-    if (examinedMoves % 10000 == 0):
-        print examinedMoves, ' moves examined at depth ', len(moves)
 
     floorI = elevatorFloor - 1
-    candFloors = [f for f in [elevatorFloor + 1, elevatorFloor - 1] if f > 0 and f < 5]
-    nextMoves = []
-    for nextFloor in candFloors:
-        possible = possibleMoves(floors[floorI])
-        filteredPossible = [m for m in possible if not moveId(m, elevatorFloor, nextFloor) in moves]
-        if len(filteredPossible) == 0:
-            print 'No possible moves at ', len(moves)
-#        if len(possible) != len(filteredPossible):
-#            print 'Removed ', len(possible) - len(filteredPossible)
-        for move in filteredPossible:
-            oldCurr = floors[floorI][:]
-            oldNext = floors[nextFloor - 1][:]
-            floors[floorI] = [eqId for eqId in floors[floorI] if not eqId in move]
-            floors[nextFloor - 1] += move
+    queue = deque()
 
-            if len(floors[3]) == equipmentCount:
-                floors[floorI] = oldCurr
-                floors[nextFloor - 1] = oldNext
-                print moves
-                return moves + [moveId(move, elevatorFloor, nextFloor)]
-            elif isValid(floors, elevatorFloor, nextFloor):
-                if len(moves) < best - 2:
-                    nextMoves.append((nextFloor, move))
-#                else:
-#                    print 'Pruned at ', len(moves)
+    queue.append((elevatorFloor, floors, []))
+    best = None
 
-            floors[floorI] = oldCurr
-            floors[nextFloor - 1] = oldNext
+    while len(queue):
+        (elevatorFloor, floors, moves) = queue.popleft()
 
-    minMoves = None
-    for (nextFloor, move) in nextMoves:
-        oldCurr = floors[floorI][:]
-        oldNext = floors[nextFloor - 1][:]
-        floors[floorI] = [eqId for eqId in floors[floorI] if not eqId in move]
-        floors[nextFloor - 1] += move
-        candidateMoves = play(nextFloor, floors, moves + [moveId(move, elevatorFloor, nextFloor)], best)
+        examinedMoves += 1
+        if (examinedMoves % 10000 == 0):
+            print examinedMoves, ' moves examined at depth ', len(moves)
 
-        if candidateMoves and (not minMoves or len(candidateMoves) < len(minMoves)):
-            minMoves = candidateMoves
-            if len(minMoves) < best:
-                print best
-                best = len(minMoves)
-
-        floors[floorI] = oldCurr
-        floors[nextFloor - 1] = oldNext
-
-    return minMoves
+        candFloors = [f for f in [elevatorFloor + 1, elevatorFloor - 1] if f > 0 and f < 5]
+        for nextFloor in candFloors:
+            possible = possibleMoves(floors[floorI])
+            filteredPossible = [m for m in possible if not moveId(m, elevatorFloor, nextFloor) in moves]
+            if len(filteredPossible) == 0:
+                print 'No possible moves at ', len(moves)
+    #        if len(possible) != len(filteredPossible):
+    #            print 'Removed ', len(possible) - len(filteredPossible)
+            for move in filteredPossible:
+                newFloors = createFloors(floors, move, elevatorFloor, nextFloor)
+                if len(newFloors[3]) == equipmentCount:
+                    return moves
+                elif isValid(floors, elevatorFloor, nextFloor):
+                    if not best or len(moves) < best - 2:
+                        queue.append((newFloors, nextFloor, moves + [moveId(move, elevatorFloor, nextFloor)]))
+    #                else:
+    #                    print 'Pruned at ', len(moves)
 
 best = play(1, initial_floors, [], int(sys.argv[2]))
 print best
