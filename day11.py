@@ -3,11 +3,11 @@
 import sys
 import re
 import time
+import itertools
 
 f = open(sys.argv[1], 'r')
 
-pos = {}
-floors = []
+initial_floors = []
 
 equipment_pattern = re.compile('([a-z]+ generator|[a-z]+-compatible microchip)')
 
@@ -15,8 +15,8 @@ floorCount = 1
 equipmentCount = 0
 for line in f.readlines():
     equipment = equipment_pattern.findall(line)
-    floor = set()
-    floors.append(floor)
+    floor = []
+    initial_floors.append(floor)
     for e in equipment:
         parts = e.split()
         if parts[1] == 'generator':
@@ -26,115 +26,74 @@ for line in f.readlines():
         else:
             raise Exception('Unknown equipment type "' + parts[1] + '"')
 
-        pos[eqId] = floorCount
-        floor.add(eqId)
+        floor.append(eqId)
         equipmentCount += 1
 
     floorCount += 1
 
-elevatorFloor = 1
-moves = 0
-
-def printFloors():
-    global floors
+def printFloors(floors, elevatorFloor):
     for i in xrange(4, 0, -1):
         f = floors[i - 1]
         print '* ' if i == elevatorFloor else '  ', i, ' '.join(f)
 
-def findPair(f):
-    for g in [g for g in f if g.endswith('G')]:
-        m = g[0:2] + 'M'
-        if m in f:
-            return (g, m)
-    return None
-
-def move(eq, d):
-    global floors, pos, elevatorFloor
-    pFloor = floors[elevatorFloor - 1]
-    nFloor = floors[elevatorFloor - 1 + d]
-
-    print 'Moving ', eq, ' from floor', elevatorFloor, ' to floor ', elevatorFloor + d
-
-    for eqId in eq:
-        pFloor.remove(eqId)
-        nFloor.add(eqId)
-        pos[eqId] = elevatorFloor + d
-
-    elevatorFloor += d
-
-def generators(floor):
-    return [g for g in floors[floor - 1] if g.endswith('G')]
-
-def equipmentAbove(f):
-    return [m for (m, floor) in pos.items() if floor > f]
-
-def microchips(floor):
-    return [m for m in floors[floor - 1] if m.endswith('M')]
-
-def microchipsBelow(f):
-    return [m for (m, floor) in pos.items() if m.endswith('M') and floor < f]
-
-def assertValid():
+def isValid(floors):
     for i in range(1, 5):
-        gens = generators(i)
+        gens = [eqId for eqId in floors[i - 1] if eqId.endswith('G')]
         if len(gens):
-            for c in microchips(i):
-                if pos[c[0:2] + 'G'] != i:
-                    raise Exception('%s on floor %d: %s' % (c, i - 1, ', '.join(floors[i - 1])))
+            for c in [eqId for eqId in floors[i - 1] if eqId.endswith('M')]:
+                if not (c[0:2] + 'G') in floors[i - 1]:
+                    #raise Exception('%s on floor %d: %s' % (c, i - 1, ', '.join(floors[i - 1])))
+                    return False
+    return True
 
-print chr(0x9b)+chr(27)+'[2J'
-print moves
-printFloors()
+def createFloors(floors, equipment, fromFloor, toFloor):
+    newFloors = []
+    for f in floors:
+        newFloors.append(f[:])
+    newFloors[fromFloor - 1] = [eqId for eqId in floors[fromFloor - 1] if not eqId in equipment]
+    newFloors[toFloor - 1] += equipment
 
-#time.sleep(1)
-while len(floors[3]) < equipmentCount and moves < 12:
-#    print chr(0x9b)+chr(27)+'[2J'
-    print moves
+    return newFloors
 
-    if elevatorFloor < 1 or elevatorFloor > 4:
-        raise Exception('Elevator floor out of range: ' + str(elevatorFloor))
-    assertValid()
+def possibleMoves(floor):
+    one = [[eqId] for eqId in floor]
+    two = list(itertools.combinations(floor, 2))
+    return one + two
 
-    floor = floors[elevatorFloor - 1]
-    pair = findPair(floor)
+def moveId(move, f, t):
+    return ''.join(move) + ';' + f + ';' + t
 
-    if pair and elevatorFloor < 4 and len(equipmentAbove(elevatorFloor)):
-        floorGens = generators(elevatorFloor)
-        chipsAtOrBelow = microchipsBelow(elevatorFloor)
-        # If the pair is the only items on this floor, or there
-        # are no microchips below this floor, move them up
-        if len(floorGens) == 1 or len(chipsAtOrBelow) == 0:
-            print "Rule 1"
-            move(pair, 1)
-        else:
-            print "Rule 2"
-            # There is at least one microchip on a lower floor,
-            # use the microchip from the pair to go down to fetch it
-            move([pair[1]], -1)
-    else:
-        chips = microchips(elevatorFloor)
-        chipsWithLowerGen = [c for c in chips if pos[c[0:2] + 'G'] < elevatorFloor]
+def play(elevatorFloor, floors, moves, best):
+    floorI = elevatorFloor - 1
+    candFloors = [f for f in [elevatorFloor + 1, elevatorFloor - 1] if f > 0 and f < 5]
+    minMoves = 1e9
+    for nextFloor in candFloors:
+        for move in [m for m in possibleMoves(floors[floorI]) if not moveId(m, elevatorFloor, nextFloor) in moves]:
+            oldCurr = floors[floorI][:]
+            oldNext = floors[nextFloor - 1][:]
+            floors[floorI] = [eqId for eqId in floors[floorI] if not eqId in move]
+            floors[nextFloor - 1] += move
 
-        # If one of the microchips on this floor has a generator on a lower floor,
-        # take the chip to go down and bring the generator
-        if len(chipsWithLowerGen):
-            print "Rule 3"
-            move(chipsWithLowerGen[0:1], -1)
-        # Otherwise, if there are microchips on this floor, move as many of them as
-        # possible up.
-        elif len(chips) > 1 and elevatorFloor < 4:
-            print "Rule 4"
-            nextGens = generators(elevatorFloor + 1)
-            move([c for c in chips[0:2] if len(nextGens) == 0 or pos[c[0:2] + 'G'] == elevatorFloor + 1], 1)
-        # Otherwise, there's a microchip somewhere below, use one of the chips to
-        # go bring it up
-        else:
-            print "Rule 5"
-            move(chips[0:1], -1)
+            if len(floors[3]) == equipmentCount:
+                floors[floorI] = oldCurr
+                floors[nextFloor - 1] = oldNext
+                #print moves
+                return moves + [moveId(move, elevatorFloor, nextFloor)]
+            elif isValid(floors):
+                if moves < best - 2:
+                    candidateMoves = play(nextFloor, floors, moves + [moveId(move, elevatorFloor, nextFloor)], best)
+                    if len(candidateMoves) < len(minMoves):
+                        minMoves = candidateMoves
+                        best = min(len(minMoves), best)
+#                else:
+#                    print 'Pruned at ', moves
 
-    printFloors()
-    moves += 1
+            floors[floorI] = oldCurr
+            floors[nextFloor - 1] = oldNext
 
-#    time.sleep(1)
+    return minMoves
 
-print moves
+print play(1, initial_floors, [], 200)
+
+#printFloors(createFloors(floors, ['HyM', 'LiM'], 1, 2), 2)
+#print possibleMoves(floors[0])
