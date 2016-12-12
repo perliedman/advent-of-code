@@ -36,8 +36,8 @@ def printFloors(floors, elevatorFloor):
         f = floors[i - 1]
         print '* ' if i == elevatorFloor else '  ', i, ' '.join(f)
 
-def isValid(floors):
-    for i in range(1, 5):
+def isValid(floors, f, t):
+    for i in range(min(f, t), max(f, t) + 1):
         gens = [eqId for eqId in floors[i - 1] if eqId.endswith('G')]
         if len(gens):
             for c in [eqId for eqId in floors[i - 1] if eqId.endswith('M')]:
@@ -61,14 +61,27 @@ def possibleMoves(floor):
     return one + two
 
 def moveId(move, f, t):
-    return ''.join(move) + ';' + f + ';' + t
+    return ''.join(move) + ';' + str(f) + ';' + str(t)
 
+examinedMoves = 0
 def play(elevatorFloor, floors, moves, best):
+    global examinedMoves
+
+    examinedMoves += 1
+    if (examinedMoves % 10000 == 0):
+        print examinedMoves, ' moves examined at depth ', len(moves)
+
     floorI = elevatorFloor - 1
     candFloors = [f for f in [elevatorFloor + 1, elevatorFloor - 1] if f > 0 and f < 5]
-    minMoves = 1e9
+    nextMoves = []
     for nextFloor in candFloors:
-        for move in [m for m in possibleMoves(floors[floorI]) if not moveId(m, elevatorFloor, nextFloor) in moves]:
+        possible = possibleMoves(floors[floorI])
+        filteredPossible = [m for m in possible if not moveId(m, elevatorFloor, nextFloor) in moves]
+        if len(filteredPossible) == 0:
+            print 'No possible moves at ', len(moves)
+#        if len(possible) != len(filteredPossible):
+#            print 'Removed ', len(possible) - len(filteredPossible)
+        for move in filteredPossible:
             oldCurr = floors[floorI][:]
             oldNext = floors[nextFloor - 1][:]
             floors[floorI] = [eqId for eqId in floors[floorI] if not eqId in move]
@@ -77,23 +90,39 @@ def play(elevatorFloor, floors, moves, best):
             if len(floors[3]) == equipmentCount:
                 floors[floorI] = oldCurr
                 floors[nextFloor - 1] = oldNext
-                #print moves
+                print moves
                 return moves + [moveId(move, elevatorFloor, nextFloor)]
-            elif isValid(floors):
-                if moves < best - 2:
-                    candidateMoves = play(nextFloor, floors, moves + [moveId(move, elevatorFloor, nextFloor)], best)
-                    if len(candidateMoves) < len(minMoves):
-                        minMoves = candidateMoves
-                        best = min(len(minMoves), best)
+            elif isValid(floors, elevatorFloor, nextFloor):
+                if len(moves) < best - 2:
+                    nextMoves.append((nextFloor, move))
 #                else:
-#                    print 'Pruned at ', moves
+#                    print 'Pruned at ', len(moves)
 
             floors[floorI] = oldCurr
             floors[nextFloor - 1] = oldNext
 
+    minMoves = None
+    for (nextFloor, move) in nextMoves:
+        oldCurr = floors[floorI][:]
+        oldNext = floors[nextFloor - 1][:]
+        floors[floorI] = [eqId for eqId in floors[floorI] if not eqId in move]
+        floors[nextFloor - 1] += move
+        candidateMoves = play(nextFloor, floors, moves + [moveId(move, elevatorFloor, nextFloor)], best)
+
+        if candidateMoves and (not minMoves or len(candidateMoves) < len(minMoves)):
+            minMoves = candidateMoves
+            if len(minMoves) < best:
+                print best
+                best = len(minMoves)
+
+        floors[floorI] = oldCurr
+        floors[nextFloor - 1] = oldNext
+
     return minMoves
 
-print play(1, initial_floors, [], 200)
+best = play(1, initial_floors, [], int(sys.argv[2]))
+print best
+print len(best)
 
 #printFloors(createFloors(floors, ['HyM', 'LiM'], 1, 2), 2)
 #print possibleMoves(floors[0])
