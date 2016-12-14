@@ -17,7 +17,7 @@ void digest2hex(unsigned char *digest, char *out) {
     }
 }
 
-int findPattern(unsigned char *d, int length, int patLen, int print) {
+int findPattern(unsigned char *d, int length, int patLen, int print, unsigned char *found) {
     unsigned char nibble, last;
     int matchStart;
     int matchCount;
@@ -28,6 +28,7 @@ int findPattern(unsigned char *d, int length, int patLen, int print) {
         if (n && nibble == last) {
             matchCount++;
             if (matchCount == patLen) {
+                *found = last;
                 return 1;
             }
         } else {
@@ -44,6 +45,26 @@ int findPattern(unsigned char *d, int length, int patLen, int print) {
     return 0;
 }
 
+int findFixedPattern(unsigned char *d, int length, int p, int patLen, int print) {
+    unsigned char nibble;
+    int matchCount = 0;
+
+    for (int n = 0; n < length * 2; ++n) {
+        nibble = d[n / 2] >> (n % 2 ? 0 : 4) & 0xF;
+        if (print) printf("%d %01x\n", n, nibble);
+        if (nibble == p) {
+            matchCount++;
+            if (matchCount == patLen) {
+                return 1;
+            }
+        } else {
+            matchCount = 0;
+        }
+    }
+
+    return 0;
+}
+
 int main(int argc, char** argv) {
     int i = 0;
     int c = 0;
@@ -52,6 +73,7 @@ int main(int argc, char** argv) {
     MD5_CTX ctx;
     unsigned char digest[16];
     char buffer[33];
+    unsigned char pattern;
 
     while (c < 64) {
         int length = snprintf(k, 256, "%s%d", argv[1], i);
@@ -60,7 +82,7 @@ int main(int argc, char** argv) {
         MD5_Update(&ctx, k, length);
         MD5_Final(digest, &ctx);
 
-        if (findPattern(digest, 16, 3, 0)) {
+        if (findPattern(digest, 16, 3, 0, &pattern)) {
             for (int j = i + 1; j < i + 1000; j++) {
                 length = snprintf(k, 256, "%s%d", argv[1], j);
 
@@ -68,11 +90,11 @@ int main(int argc, char** argv) {
                 MD5_Update(&ctx, k, length);
                 MD5_Final(digest, &ctx);
 
-                if (findPattern(digest, 16, 5, 0)) {
+                if (findFixedPattern(digest, 16, pattern, 5, 0)) {
                     printf("---------------\n");
                     digest2hex(digest, buffer);
-                    printf("%d; %d: %s\n", i, j, buffer);
-                    findPattern(digest, 16, 5, 1);
+                    printf("%d; %d (%01x): %s\n", i, j, pattern, buffer);
+                    findFixedPattern(digest, 16, pattern, 5, 1);
 
                     c++;
                     printf("%d: %d\n", c, i);
@@ -98,13 +120,14 @@ int main(int argc, char** argv) {
 //     unsigned char digest[16];
 //     char buffer[33];
 
-//     int length = snprintf(k, 256, "abc200");
+// //    int length = snprintf(k, 256, "abc816");
+//     int length = snprintf(k, 256, "abc816");
 
 //     MD5_Init(&ctx);
 //     MD5_Update(&ctx, k, length);
 //     MD5_Final(digest, &ctx);
 
-//     printf("%d\n", findPattern(digest, 16, 5));
+//     printf("%d\n", findFixedPattern(digest, 16, 0xe, 5, 0));
 
 //     return 0;
 // }
