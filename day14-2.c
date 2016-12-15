@@ -65,40 +65,68 @@ int findFixedPattern(unsigned char *d, int length, int p, int patLen, int print)
     return 0;
 }
 
+void hash(char *k, int length, unsigned char *digest, int rounds) {
+    MD5_CTX ctx;
+    char buffer[33];
+
+    MD5_Init(&ctx);
+    MD5_Update(&ctx, k, length);
+    MD5_Final(digest, &ctx);
+    digest2hex(digest, buffer);
+
+    for (int i = 0; i < rounds; i++) {
+        MD5_Init(&ctx);
+        MD5_Update(&ctx, buffer, 32);
+        MD5_Final(digest, &ctx);
+        digest2hex(digest, buffer);
+    }
+}
+
 int main(int argc, char** argv) {
     int i = 0;
     int c = 0;
     char k[256];
     MD5_CTX ctx;
-    unsigned char digest[16];
+    unsigned char *digest;
     char buffer[33];
     char buffer2[33];
     unsigned char pattern;
 
+    unsigned char digests[1000*16];
+    int maxHash = 0;
+
     while (c < 64) {
         int length = snprintf(k, 256, "%s%d", argv[1], i);
 
-        MD5_Init(&ctx);
-        MD5_Update(&ctx, k, length);
-        MD5_Final(digest, &ctx);
+        digest = digests + (i % 1000) * 16;
+        if (i >= maxHash) {
+            hash(k, length, digest, 2016);
+            maxHash = i;
+        }
 
         if (findPattern(digest, 16, 3, 0, &pattern)) {
             digest2hex(digest, buffer);
+            //printf("%d: %s\n", i, buffer);
             for (int j = i + 1; j < i + 1000; j++) {
                 length = snprintf(k, 256, "%s%d", argv[1], j);
 
-                MD5_Init(&ctx);
-                MD5_Update(&ctx, k, length);
-                MD5_Final(digest, &ctx);
+                digest = digests + (j % 1000) * 16;
+                if (j >= maxHash) {
+                    hash(k, length, digest, 2016);
+                    maxHash = j;
+                }
 
                 if (findFixedPattern(digest, 16, pattern, 5, 0)) {
-                    //digest2hex(digest, buffer2);
+                    digest2hex(digest, buffer2);
                     //printf("%s; %d (%s); %d (%01x): %s\n", k, i, buffer, j, pattern, buffer2);
-                    //printf("%s %s\n", buffer, buffer2);
+                    printf("%s %s\n", buffer, buffer2);
                     c++;
                     //printf("%d: %d\n", c, i);
                     break;
                 }
+                // if (j % 10 == 0) {
+                //     printf("\t%d\n", j);
+                // }
             }
             //printf("%d: failed match\n", i);
         }
@@ -120,14 +148,13 @@ int main(int argc, char** argv) {
 //     unsigned char digest[16];
 //     char buffer[33];
 
-// //    int length = snprintf(k, 256, "abc816");
-//     int length = snprintf(k, 256, "abc816");
+//     int length = snprintf(k, 256, "abc0");
 
-//     MD5_Init(&ctx);
-//     MD5_Update(&ctx, k, length);
-//     MD5_Final(digest, &ctx);
+//     hash(k, length, digest, 2016);
+//     digest2hex(digest, buffer);
 
-//     printf("%d\n", findFixedPattern(digest, 16, 0xe, 5, 0));
+//     printf("%s\n", buffer);
 
 //     return 0;
 // }
+
