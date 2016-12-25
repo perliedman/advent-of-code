@@ -34,9 +34,9 @@ int main(int argc, char **argv) {
         steps--;
         n_elves--;
 
-        if (n_elves % 10000 == 0) {
-            printf("%d elves remaining.\n", n_elves);
-        }
+        // if (n_elves % 10000 == 0) {
+        //     printf("%d elves remaining.\n", n_elves);
+        // }
 
         e = e->next;
     }
