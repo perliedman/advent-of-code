@@ -26,8 +26,10 @@ def rotateConstant(data, dir, x):
 # 2 -> 5
 # 3 -> 7
 # --
-# 4 -> 10
-# 6 -> 14 => 14 % 8 = 6
+# 4 -> rot (4 + 2) <=> -2 => 2
+# 5 -> = rot (5 + 2) <=> -1 => 4
+# 6 -> 14 => rot (6 + 2) <=> 0 => 6
+# 7 -> rot(7 + 2) <=> 1 => 8
 #
 # p = p0 + p0 + 1 = 2 * p0 + 1 if p0 < 4 => p <= 7    => p0 = (p - 1) / 2
 # p = p0 + p0 + 2 = 2 * p0 + 2 if p0 >= 4 => p >= 10  => p0 = (p - 2) / 2
@@ -46,7 +48,7 @@ def rotatePosition(data, x):
     if p % 2:
         p0 = (p - 1) / 2
     else:
-        p0 = (p - 2) / 2
+        p0 = (p + len(data) - 2) / 2
 
     while p0 < 0:
         p0 += len(data)
