@@ -1,7 +1,13 @@
-Advent of Code 2016
-===================
+Advent of Code
+==============
 
-My solutions for [Advent of Code 2016](https://adventofcode.com/) - not too much fun to find here, in other words.
+My solutions for [Advent of Code](https://adventofcode.com/) - not too much fun to find here, in other words.
+
+## 2017
+
+In progress... far from sure I can find the energy to go through with it this year, though :)
+
+## 2016
 
 I was neither very quick at making the solutions, neither are they very elegant - it's "coding while I'm putting kids to sleep"-quality code. I like to think I learned while making them, or at least I re-learned a lot of things I forgot since studying computer science.
 
