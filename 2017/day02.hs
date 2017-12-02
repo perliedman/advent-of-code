@@ -1,18 +1,20 @@
 import Data.List.Split
 
-toLines = splitOn "\n"
-lineToCols = filter (\x -> x /= "") . splitOn " "
-toInt x = read x :: Int
+toNumberColumns x = let
+  toLines = splitOn "\n"
+  lineToCols = filter (\x -> x /= "") . splitOn " "
+  toInt x = read x :: Int
+  in map ((map toInt) . lineToCols) (toLines x)
 
 checksum1 x = let
   minMax xs = (maximum xs, minimum xs)
   diff x = fst x - snd x
-  in sum (map (diff . minMax . (map toInt) . lineToCols) (toLines x))
+  in sum (map (diff . minMax) (toNumberColumns x))
 
 checksum2 x = let
   divisible xs = [(x, y) | x <- xs, y <- xs, x /= y, x `mod` y == 0]
   divide x = fst x `div` snd x
-  in sum (map (divide . head . divisible . (map toInt) . lineToCols) (toLines x))
+  in sum (map (divide . head . divisible) (toNumberColumns x))
 
 sample1 = "5 1 9 5 \n\
 \7 5 3 \n\
