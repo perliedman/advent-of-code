@@ -1,7 +1,6 @@
--- import Data.Map (Map)
--- import qualified Data.Map as Map
 import qualified Data.HashMap.Strict as M
 
+-- #1
 
 leastOddSquare x = let
   makeOdd x = 2 * x + 1
@@ -21,7 +20,7 @@ coord v
 
 distance x = (abs $ fst c) + (abs $ snd c) where c = coord x
 
-firstWithXLessThan x = head $ dropWhile (\c -> (fst $ fst c) < x) [(coord v, v) | v <- [1..]]
+-- #2
 
 memVal 1 = (1, M.singleton (0, 0) 1)
 memVal v = let
