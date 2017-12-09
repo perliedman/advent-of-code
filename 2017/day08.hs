@@ -9,8 +9,8 @@ type CmpFunc = State -> Arg -> Arg -> Bool
 data Register = Register String deriving (Show)
 data Arg = RegArg Register | Literal Int deriving (Show)
 data Operand = Inc Register Arg | Dec Register Arg deriving (Show)
-data Conditional = Conditional Arg CmpFunc Arg
-data Instruction = Instruction Operand Conditional
+data Condition = Condition Arg CmpFunc Arg
+data Instruction = Instruction Operand Condition
 
 lineExp = Re.mkRegex "^([a-z]+) +(inc|dec) +((-|)[0-9]+) +if +([a-z]+) ([!<>=]+) +((-|)[0-9]+)$"
 regExp = Re.mkRegex "^([a-z]+)$"
@@ -43,14 +43,14 @@ parseOp reg op val
   | op == "inc" = Inc (parseRegister reg) (parseArg val)
   | op == "dec" = Dec (parseRegister reg) (parseArg val)  
 
-parseCondition reg op val = Conditional (parseArg reg) (parseComparison op) (parseArg val)
+parseCondition reg op val = Condition (parseArg reg) (parseComparison op) (parseArg val)
 
 parseStatement [opReg, op, opVal, _, condReg, condOp, condVal, _] =
   Instruction (parseOp opReg op opVal) (parseCondition condReg condOp condVal)
 parseInput input = map fromJust $ map (Re.matchRegex lineExp) $ lines input
 
-eval :: State -> Conditional -> Bool
-eval state (Conditional arg1 cmp arg2) = cmp state arg1 arg2
+eval :: State -> Condition -> Bool
+eval state (Condition arg1 cmp arg2) = cmp state arg1 arg2
 
 inc :: State -> String -> Int -> State
 inc state r v = Map.insert r ((+) v (Map.findWithDefault 0 r state)) state
