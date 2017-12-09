@@ -1,21 +1,31 @@
 import Debug.Trace
 
--- parseStream (x:xs) depth | trace ("parseStream " ++ show x ++ " at depth " ++ show depth) False = undefined
-parseStream [] _ = 0
-parseStream ('{':xs) depth = (depth+1) + (parseStream xs (depth + 1))
-parseStream ('}':xs) depth = parseStream xs (depth - 1)
-parseStream ('<':xs) depth = parseGarbage xs depth
-parseStream ('!':xs) depth = ignoreOne xs depth parseStream
-parseStream (',':xs) depth = parseStream xs depth
-parseStream ('\n':xs) depth = parseStream xs depth
+data Context = Context {
+  depth :: Int,
+  garbage :: Int
+} deriving (Show)
 
-ignoreOne (_:xs) depth next = next xs depth
+addDepth context v = Context {depth=depth context + v, garbage = garbage context}
+addGarbage context = Context {depth=depth context, garbage = garbage context + 1}
 
-parseGarbage ('>':xs) depth = parseStream xs depth
-parseGarbage ('!':xs) depth = ignoreOne xs depth parseGarbage
-parseGarbage (_:xs) depth = parseGarbage xs depth
+-- parseStream (x:xs) context | trace ("parseStream " ++ show x ++ " at context " ++ show context) False = undefined
+parseStream [] context = (0, context)
+parseStream ('{':xs) context = let
+  (score, finalContext) = parseStream xs (addDepth context 1)
+  in (depth context + 1 + score, finalContext)
+parseStream ('}':xs) context = parseStream xs (addDepth context (-1))
+parseStream ('<':xs) context = parseGarbage xs context
+parseStream ('!':xs) context = ignoreOne xs context parseStream
+parseStream (',':xs) context = parseStream xs context
+parseStream ('\n':xs) context = parseStream xs context
+
+ignoreOne (_:xs) context next = next xs context
+
+parseGarbage ('>':xs) context = parseStream xs context
+parseGarbage ('!':xs) context = ignoreOne xs context parseGarbage
+parseGarbage (_:xs) context = parseGarbage xs (addGarbage context)
 
 main = do
   contents <- getContents
-  putStr (show $ parseStream contents 0)
+  putStr (show $ parseStream contents (Context {depth=0, garbage=0}))
   putStr ("\n")
