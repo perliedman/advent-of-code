@@ -11,8 +11,7 @@ revcycle len l skip xs = let
 
 pinchtwist :: Int -> ([Int], Int, Int) -> [Int] -> ([Int], Int, Int)
 pinchtwist len (xs, p, skip) [] = (take len $ drop (len - (p `mod` len)) xs, p, skip)
-pinchtwist len (xs, p, skip) (l:ls) = let
-  in pinchtwist len (revcycle len l skip xs, p + l + skip, skip + 1) ls
+pinchtwist len (xs, p, skip) (l:ls) = pinchtwist len (revcycle len l skip xs, p + l + skip, skip + 1) ls
 
 stdsuffix = [17, 31, 73, 47, 23]
 
@@ -24,7 +23,7 @@ strToLengths s = map ord s ++ stdsuffix
 
 denseHash :: [Int] -> [Int]
 denseHash xs = let
-  xorGroup gs = foldl1 (\a x -> a `xor` x) gs
+  xorGroup gs = foldl1 xor gs
   in map xorGroup $ chunksOf 16 xs
 
 toHexStr xs = concat $ map (\x -> if x < 16 then "0" ++ showHex x "" else showHex x "") xs
