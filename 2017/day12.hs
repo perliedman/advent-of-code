@@ -36,7 +36,15 @@ connectedNodes g n = let
     in seenList ++ (concat $ map (neighbors g nseen) (Set.toList $ Set.difference ns seen))
   in neighbors g Set.empty n
 
+countSubgraphs g = let
+  findgraph ns = Set.fromList $ connectedNodes g (head $ take 1 $ Set.toList ns)
+  count :: Set.Set Int -> Int
+  count ns = if Set.null ns then 0 else 1+(count (Set.difference ns $ findgraph ns))
+  in count $ Map.keysSet g
+
 main = do
   contents <- getContents
   putStr (show $ length $ nub $ connectedNodes (parseGraph $ lines contents) 0)
+  putStr ("\n")
+  putStr (show $ countSubgraphs (parseGraph $ lines contents))
   putStr ("\n")
