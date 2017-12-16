@@ -4,6 +4,7 @@ import Data.Char
 import Numeric
 import Data.Bits
 import Data.Array
+import qualified Graphics.Image as I
 
 countHashBits = sum . map ((\x -> popCount (x :: Integer)) . fst . head . readHex)
 knotHashes i = map (\x -> hash $ i ++ "-" ++ (show x)) [0..127]
@@ -53,3 +54,14 @@ fillGroups grid = let
   in (filledGrid, ngroups - 2)
 
 b = snd . fillGroups . toComplexArray . hashesToBits . knotHashes
+
+gridToPixel grid c = let
+  t = (grid ! c)
+  in (I.PixelRGB ((fromIntegral ((t `mod` 7) * 20)) :: Double) (fromIntegral (t `mod` 5) * 20) (fromIntegral (t `mod` 11) * 20)) / 200
+
+makeImage grid = I.makeImageR I.VU (128, 128) (gridToPixel grid)
+
+bImage = makeImage . fst . fillGroups . toComplexArray . hashesToBits . knotHashes
+
+main = do
+  I.writeImage "day14.png" $ bImage "uugsqrei"
