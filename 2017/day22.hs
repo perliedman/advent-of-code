@@ -1,23 +1,17 @@
+import Data.List
 import qualified Data.Map.Strict as Map
 
 type Grid = Map.Map (Int, Int) Char
 type State = (Grid, (Int, Int), (Int, Int), Int)
 
-step :: State -> State
-step (grid, (x, y), (dx, dy), infections) = 
-  (Map.insert (x, y) (invert n) grid, (x+nx, y+ny), (nx, ny), if n == '.' then infections+1 else infections)
+step :: (Char -> (Int, Int) -> (Char, (Int, Int))) -> State -> State
+step next (grid, (x, y), d, infections) = 
+  (Map.insert (x, y) v grid, (x+nx, y+ny), (nx, ny), if v == '#' then infections+1 else infections)
   where
     n = Map.findWithDefault '.' (x, y) grid
-    invert '#' = '.'
-    invert '.' = '#'
-    (nx, ny) = if n == '#' then
-      -- right
-      (-dy, dx) 
-    else
-      -- left
-      (dy, -dx)
+    (v, (nx, ny)) = next n d
 
-runSteps n state = foldl (\s _ -> step s) state [1..n]
+runSteps nextStatus n state = foldl' (\s _ -> step nextStatus s) state [1..n]
 
 gridMiddle :: Grid -> (Int, Int)
 gridMiddle grid = (mx `div` 2, my `div` 2) where ((mx, my), _) = Map.findMax grid
@@ -35,9 +29,22 @@ printState (grid, _, _, infections) = let
   gridBounds = foldl (\((minx, maxx), (miny, maxy)) (x, y) -> ((min minx x, max maxx x), (min miny y, max maxy y))) ((0, 0), (0, 0)) . Map.keys
   toLine grid y (minx, maxx) = map (\c -> Map.findWithDefault '.' c grid) $ zip [minx..maxx] (cycle [y])
   toLines grid (xb, (miny, maxy)) = map (\y -> toLine grid y xb) [miny..maxy]
-  in unlines ((toLines grid $ gridBounds grid) ++ ["Infections:" ++ show infections])
+  -- in unlines ((toLines grid $ gridBounds grid) ++ ["Infections:" ++ show infections])
+  in "Infections: " ++ (show infections) ++ "; bounds: " ++ (show $ gridBounds grid)
 
+invert '#' (dx, dy) = ('.', (-dy, dx)) -- right
+invert '.' (dx, dy) = ('#', (dy, -dx)) -- left
+
+evolved '.' (dx, dy) = ('W', (dy, -dx)) -- left
+evolved 'W' d = ('#', d) -- forward
+evolved '#' (dx, dy) = ('F', (-dy, dx)) -- right
+evolved 'F' (dx, dy) = ('.', (-dx, -dy)) -- reverse
 
 main = do
   contents <- getContents
-  putStr (printState $ runSteps 10000 $ initState $ parse $ lines contents)
+  -- Part one
+  putStr (printState $ runSteps invert 10000 $ initState $ parse $ lines contents)
+  putStr "\n"
+  -- Part two
+  putStr (printState $ runSteps evolved 10000000 $ initState $ parse $ lines contents)
+  putStr "\n"
