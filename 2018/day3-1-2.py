@@ -8,8 +8,7 @@ if __name__ == '__main__':
     lines = [l.strip() for l in stdin.readlines()]
     rectangles = [[int(x) for x in line_pattern.match(l).groups()] for l in lines]
 
-    max_x = reduce(lambda a, (_, x, y, w, h): max(a, x + w), rectangles, 0)
-    max_y = reduce(lambda a, (_, x, y, w, h): max(a, y + w), rectangles, 0)
+    (max_x, max_y) = reduce(lambda (mx, my), (_, x, y, w, h): (max(mx, x + w), max(my, y + h)), rectangles, (0, 0))
 
     fabric = [[0 for x in range(max_x)] for x in range(max_y)]
 
