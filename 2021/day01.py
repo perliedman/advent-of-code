@@ -13,25 +13,8 @@ def part1(depths):
 
 
 def part2(depths):
-    prev_sum = None
-    sum = 0
-    prevs = []
-    n_incs = 0
-    for i in range(len(depths)):
-        prevs.append(depths[i])
-        sum += depths[i]
-        if len(prevs) == 4:
-            sum -= prevs[0]
-            prevs = prevs[1:]
-
-#            print(prev_sum, sum)
-            if prev_sum and sum > prev_sum:
-                n_incs = n_incs + 1
-
-        if len(prevs) == 3:
-            prev_sum = sum
-
-    print(n_incs)
+    incs = [i for i in range(len(depths) - 3) if sum(depths[i + 1:i + 4]) > sum(depths[i:i + 3])]
+    print(len(incs))
 
 with open(sys.argv[1], 'r') as f:
     depths = [int(x) for x in f.readlines()]
